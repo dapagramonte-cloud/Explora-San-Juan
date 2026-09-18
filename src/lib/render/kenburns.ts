@@ -7,10 +7,14 @@ export interface SourceRect {
   sh: number;
 }
 
+// Valores mas altos que antes: con 0.07/0.13/0.22 el movimiento de camara era
+// tan sutil que en la practica se percibia como una foto fija con cortes
+// entre escenas, no como un videoclip. Estos valores dan un pan/zoom
+// claramente visible manteniendo la sensacion cinematografica.
 const INTENSITY_SCALE: Record<MovementIntensity, number> = {
-  suave: 0.07,
-  media: 0.13,
-  intensa: 0.22,
+  suave: 0.14,
+  media: 0.24,
+  intensa: 0.38,
 };
 
 function easeInOut(t: number): number {

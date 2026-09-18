@@ -16,7 +16,14 @@ export async function getHuman() {
         cacheSensitivity: 0,
         face: {
           enabled: true,
-          detector: { enabled: true, maxDetected: 6, minConfidence: 0.4, rotation: false },
+          // minConfidence bajo + rotation activada: con los valores por
+          // defecto de Human (0.4, sin rotacion) muchas fotos reales
+          // (angulo no perfectamente frontal, resolucion moderada, buena
+          // parte de fotos de telefono) quedaban por debajo del umbral y no
+          // se detectaba ninguna cara. Preferimos permitir mas detecciones
+          // (alguna ocasional de menor calidad) a que la funcion parezca
+          // simplemente no funcionar.
+          detector: { enabled: true, maxDetected: 10, minConfidence: 0.1, iouThreshold: 0.15, rotation: true },
           mesh: { enabled: true },
           attention: { enabled: false },
           iris: { enabled: false },

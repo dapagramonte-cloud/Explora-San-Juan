@@ -1,7 +1,7 @@
 import type { CameraMovementType, Project, TransitionType } from "@/types/project";
 import { shallow } from "zustand/shallow";
 import { useProjectStore } from "@/store/useProjectStore";
-import { Badge, Field, SectionTitle, TextInput } from "@/components/ui";
+import { Badge, Button, Field, SectionTitle, TextInput } from "@/components/ui";
 import type { Selection } from "./panelTypes";
 
 const MOVEMENTS: CameraMovementType[] = [
@@ -13,7 +13,10 @@ const TRANSITIONS: TransitionType[] = [
 ];
 
 export function PropertiesPanel({ project, selection }: { project: Project; selection: Selection }) {
-  const { updateScene, patch } = useProjectStore((s) => ({ updateScene: s.updateScene, patch: s.patch }), shallow);
+  const { updateScene, patch, reanalyzeImage } = useProjectStore(
+    (s) => ({ updateScene: s.updateScene, patch: s.patch, reanalyzeImage: s.reanalyzeImage }),
+    shallow
+  );
 
   if (!selection) {
     return (
@@ -125,6 +128,14 @@ export function PropertiesPanel({ project, selection }: { project: Project; sele
               {image.analysis.dominantColors.map((c) => (
                 <span key={c} className="w-6 h-6 rounded-full border border-studio-border" style={{ backgroundColor: c }} />
               ))}
+            </div>
+            <div className="flex items-center justify-between gap-2 mt-1">
+              <span className="text-xs text-studio-muted">
+                {image.analysis.faces.length > 0
+                  ? `${image.analysis.faces.length} cara(s) detectada(s) para animar canto.`
+                  : "No se detecto ninguna cara (usa una foto de frente, bien iluminada y sin recortes)."}
+              </span>
+              <Button onClick={() => reanalyzeImage(image.id)}>Volver a analizar</Button>
             </div>
           </>
         )}

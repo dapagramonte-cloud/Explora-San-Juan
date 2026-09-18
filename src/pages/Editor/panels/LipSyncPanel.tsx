@@ -6,8 +6,12 @@ import { lipSyncProvider, type FacialExpression, type FacialIntensity } from "@/
 import { Badge, Button, Card, EmptyState, Field, SectionTitle } from "@/components/ui";
 
 export function LipSyncPanel({ project }: { project: Project }) {
-  const { updateScene, patch } = useProjectStore((s) => ({ updateScene: s.updateScene, patch: s.patch }), shallow);
+  const { updateScene, patch, reanalyzeImage } = useProjectStore(
+    (s) => ({ updateScene: s.updateScene, patch: s.patch, reanalyzeImage: s.reanalyzeImage }),
+    shallow
+  );
   const [advancedOpen, setAdvancedOpen] = useState(false);
+  const [reanalyzing, setReanalyzing] = useState(false);
 
   const scenesWithImages = project.scenes.map((scene, idx) => ({
     scene,
@@ -25,6 +29,15 @@ export function LipSyncPanel({ project }: { project: Project }) {
     });
   }
 
+  async function reanalyzeAll() {
+    setReanalyzing(true);
+    try {
+      for (const image of project.images) await reanalyzeImage(image.id);
+    } finally {
+      setReanalyzing(false);
+    }
+  }
+
   return (
     <div className="flex flex-col gap-4 max-w-3xl">
       <SectionTitle>Animacion de canto</SectionTitle>
@@ -36,10 +49,17 @@ export function LipSyncPanel({ project }: { project: Project }) {
       </p>
 
       {scenesWithFaces.length === 0 ? (
-        <EmptyState
-          title="No se detectaron caras"
-          description="Sube imagenes con personas (la cantante, el coro, etc.). La deteccion facial corre automaticamente al subir cada imagen."
-        />
+        <>
+          <EmptyState
+            title="No se detectaron caras"
+            description="Sube imagenes con personas (la cantante, el coro, etc.), de frente y bien iluminadas. La deteccion facial corre automaticamente al subir cada imagen."
+          />
+          {project.images.length > 0 && (
+            <Button onClick={reanalyzeAll} disabled={reanalyzing}>
+              {reanalyzing ? "Analizando..." : "Volver a analizar todas las imagenes"}
+            </Button>
+          )}
+        </>
       ) : (
         <>
           <Button variant="primary" onClick={enableAll}>

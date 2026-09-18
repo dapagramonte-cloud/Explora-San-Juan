@@ -12,7 +12,7 @@ import type {
   StylePresetId,
 } from "@/types/project";
 import { createEmptyProject } from "@/types/project";
-import { deleteProject, loadAllProjects, loadProject, saveProject } from "@/lib/db";
+import { deleteProject, loadAllProjects, loadFileBlob, loadProject, saveProject } from "@/lib/db";
 import { storageProvider } from "@/providers/StorageProvider";
 import { audioAnalysisProvider } from "@/providers/AudioAnalysisProvider";
 import { analyzeImage } from "@/lib/imageAnalysis";
@@ -49,6 +49,7 @@ interface ProjectStoreState {
   updateSongSection(id: string, patch: Partial<import("@/types/project").SongSection>): void;
   addImages(files: File[]): Promise<void>;
   removeImage(id: string): void;
+  reanalyzeImage(id: string): Promise<void>;
   reorderImages(orderedIds: string[]): void;
 
   setStylePreset(id: StylePresetId): void;
@@ -246,6 +247,19 @@ export const useProjectStore = create<ProjectStoreState>((set, get) => ({
     get().patch((draft) => {
       draft.images = draft.images.filter((i) => i.id !== id);
       draft.scenes = draft.scenes.filter((s) => s.imageId !== id);
+    });
+  },
+
+  async reanalyzeImage(id) {
+    const project = get().currentProject;
+    const image = project?.images.find((i) => i.id === id);
+    if (!image) return;
+    const blob = await loadFileBlob(image.blobKey);
+    if (!blob) return;
+    const analysis = await analyzeImage(blob);
+    get().patch((draft) => {
+      const img = draft.images.find((i) => i.id === id);
+      if (img) img.analysis = analysis;
     });
   },
 
