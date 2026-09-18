@@ -124,10 +124,14 @@ export function interpretCommand(rawText: string, project: Project): AssistantRe
     };
   }
 
-  // Movimiento a las imagenes estaticas
-  if (text.includes("movimiento") && text.includes("imagen")) {
+  // Movimiento a las imagenes estaticas / "animar las imagenes como video"
+  if (
+    (text.includes("movimiento") || text.includes("anima") || text.includes("mueve")) &&
+    (text.includes("imagen") || text.includes("video") || text.includes("escena"))
+  ) {
     return {
-      reply: "Active movimiento de camara en todas las escenas que estaban estaticas.",
+      reply:
+        "Active movimiento de camara (zoom/paneo) en todas las escenas que estaban estaticas, para que cada imagen se vea como una toma de video en vez de una foto fija.",
       patch: (draft) => {
         draft.scenes.forEach((s) => { if (s.movement === "none") s.movement = "zoom-in"; });
       },
