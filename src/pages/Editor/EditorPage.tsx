@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
+import { shallow } from "zustand/shallow";
 import { useProjectStore } from "@/store/useProjectStore";
 import { useSceneBitmaps } from "@/hooks/useSceneBitmaps";
 import { PreviewPlayer } from "@/components/PreviewPlayer";
@@ -18,7 +19,10 @@ import type { PanelId, Selection } from "./panelTypes";
 
 export default function EditorPage() {
   const { id } = useParams<{ id: string }>();
-  const { currentProject, openProject, saveStatus, undo, redo } = useProjectStore();
+  const { currentProject, openProject, saveStatus, undo, redo } = useProjectStore(
+    (s) => ({ currentProject: s.currentProject, openProject: s.openProject, saveStatus: s.saveStatus, undo: s.undo, redo: s.redo }),
+    shallow
+  );
   const [activePanel, setActivePanel] = useState<PanelId>("archivos");
   const [selection, setSelection] = useState<Selection>(null);
   const [showExport, setShowExport] = useState(false);

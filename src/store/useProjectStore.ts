@@ -111,6 +111,7 @@ export const useProjectStore = create<ProjectStoreState>((set, get) => ({
   },
 
   async openProject(id) {
+    if (get().currentProject?.id === id) return;
     const project = await loadProject(id);
     if (!project) return;
     set({ currentProject: project, past: [], future: [] });

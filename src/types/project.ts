@@ -117,10 +117,16 @@ export interface SongSection {
   manuallyEdited: boolean;
 }
 
+export interface EnergyEnvelope {
+  values: number[]; // RMS normalizado 0..1
+  hopSeconds: number; // periodo entre muestras
+}
+
 export interface SongAnalysis {
   durationSec: number;
   bpm: number | null;
-  waveformPeaks: number[]; // normalizado 0..1, resolucion fija
+  waveformPeaks: number[]; // normalizado 0..1, resolucion fija (visualizacion)
+  energyEnvelope: EnergyEnvelope; // resolucion fina, usada para animar el canto
   sections: SongSection[];
   analyzedAt: string;
 }
@@ -148,13 +154,26 @@ export type ImageTag =
   | "primer-plano"
   | "plano-general";
 
+// Puntos clave de la boca/mandibula normalizados 0..1 respecto a la imagen
+// original, obtenidos con deteccion facial real (blazeface + facemesh,
+// ejecutados localmente en el navegador). Se usan para animar el canto.
+export interface FaceLandmarks {
+  leftMouthX: number;
+  rightMouthX: number;
+  upperLipY: number;
+  chinY: number;
+  centerX: number;
+  centerY: number;
+}
+
 export interface ImageAnalysis {
   width: number;
   height: number;
   orientation: "horizontal" | "vertical" | "cuadrada";
   dominantColors: string[];
   brightness: number; // 0..1
-  likelyPortrait: boolean; // heuristica local (proporcion/centro de interes), no deteccion facial real
+  likelyPortrait: boolean; // heuristica local (proporcion/centro de interes)
+  faces: FaceLandmarks[]; // deteccion facial real; vacio si no se detecto ninguna cara
   tags: ImageTag[];
   analyzedAt: string;
 }

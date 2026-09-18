@@ -47,7 +47,7 @@ export function computeWaveformPeaks(buffer: AudioBuffer, numPeaks = 800): numbe
   return peaks.map((p) => Math.min(1, p / globalMax));
 }
 
-interface Envelope {
+export interface Envelope {
   values: number[]; // RMS normalizado 0..1
   hopSeconds: number;
 }
@@ -207,7 +207,24 @@ export async function analyzeSong(file: Blob): Promise<SongAnalysis> {
     durationSec: buffer.duration,
     bpm,
     waveformPeaks,
+    energyEnvelope: envelope,
     sections,
     analyzedAt: new Date().toISOString(),
   };
+}
+
+/**
+ * Amplitud interpolada (0..1) en un instante t, a partir de la envolvente de
+ * energia guardada en el analisis de la cancion. Es la misma fuente de datos
+ * para preview y export, para que la animacion de canto se vea igual en
+ * ambos.
+ */
+export function getAmplitudeAt(envelope: Envelope, t: number): number {
+  const { values, hopSeconds } = envelope;
+  if (values.length === 0) return 0;
+  const pos = t / hopSeconds;
+  const i0 = Math.max(0, Math.min(values.length - 1, Math.floor(pos)));
+  const i1 = Math.min(values.length - 1, i0 + 1);
+  const frac = pos - i0;
+  return values[i0] + (values[i1] - values[i0]) * frac;
 }

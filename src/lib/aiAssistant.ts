@@ -145,10 +145,25 @@ export function interpretCommand(rawText: string, project: Project): AssistantRe
     return { reply: "Cambie el formato a cuadrado 1:1.", patch: (draft) => { draft.aspectRatio = "1:1"; } };
   }
 
-  // Sincronizacion labial
-  if (text.includes("labios") || text.includes("lip sync") || text.includes("sincroniza")) {
+  // Animacion de canto / sincronizacion labial local
+  if (text.includes("labios") || text.includes("lip sync") || text.includes("sincroniza") || text.includes("cantando")) {
+    const withFaces = project.scenes.filter((s) => {
+      const img = project.images.find((i) => i.id === s.imageId);
+      return (img?.analysis?.faces.length ?? 0) > 0;
+    });
+    if (withFaces.length === 0) {
+      return {
+        reply: "No detecte caras en las imagenes del proyecto. Sube fotos de la cantante o el coro para poder animarlas cantando.",
+      };
+    }
     return {
-      reply: "La sincronizacion labial requiere seleccionar una imagen y un fragmento de audio en el panel 'Sincronizacion labial', ya que depende de un proveedor de IA externo.",
+      reply: `Active la animacion de canto (deteccion facial local, sin costo) en ${withFaces.length} escena(s) donde detecte caras.`,
+      patch: (draft) => {
+        const imgById = new Map(draft.images.map((i) => [i.id, i]));
+        draft.scenes.forEach((s) => {
+          if ((imgById.get(s.imageId)?.analysis?.faces.length ?? 0) > 0) s.lipSyncEnabled = true;
+        });
+      },
     };
   }
 

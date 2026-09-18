@@ -20,7 +20,7 @@ const SUGGESTIONS = [
 ];
 
 export function AIChatPanel({ project }: { project: Project }) {
-  const { patch } = useProjectStore();
+  const patch = useProjectStore((s) => s.patch);
   const [messages, setMessages] = useState<Message[]>([
     {
       id: "welcome",

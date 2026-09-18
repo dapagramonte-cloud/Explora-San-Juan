@@ -1,4 +1,5 @@
 import type { AspectRatio, Project } from "@/types/project";
+import { shallow } from "zustand/shallow";
 import { useProjectStore } from "@/store/useProjectStore";
 import { STYLE_PRESETS } from "@/data/stylePresets";
 import { Card, SectionTitle, SliderRow } from "@/components/ui";
@@ -10,7 +11,10 @@ const ASPECT_OPTIONS: Array<{ value: AspectRatio; label: string; desc: string }>
 ];
 
 export function EffectsPanel({ project }: { project: Project }) {
-  const { setStylePreset, setAspectRatio, setColorGrade, setEffect } = useProjectStore();
+  const { setStylePreset, setAspectRatio, setColorGrade, setEffect } = useProjectStore(
+    (s) => ({ setStylePreset: s.setStylePreset, setAspectRatio: s.setAspectRatio, setColorGrade: s.setColorGrade, setEffect: s.setEffect }),
+    shallow
+  );
 
   return (
     <div className="flex flex-col gap-6 max-w-4xl">

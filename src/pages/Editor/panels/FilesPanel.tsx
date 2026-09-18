@@ -1,5 +1,6 @@
 import { useRef, useState } from "react";
 import type { Project, SectionLabel } from "@/types/project";
+import { shallow } from "zustand/shallow";
 import { useProjectStore } from "@/store/useProjectStore";
 import { useObjectUrls } from "@/hooks/useObjectUrls";
 import { Button, Card, SectionTitle, Badge, EmptyState } from "@/components/ui";
@@ -33,7 +34,7 @@ export function FilesPanel({ project, onSelect }: { project: Project; onSelect: 
       updateSongSection: s.updateSongSection,
       isAnalyzingSong: s.isAnalyzingSong,
       isAnalyzingImages: s.isAnalyzingImages,
-    }));
+    }), shallow);
 
   const songInputRef = useRef<HTMLInputElement>(null);
   const imageInputRef = useRef<HTMLInputElement>(null);

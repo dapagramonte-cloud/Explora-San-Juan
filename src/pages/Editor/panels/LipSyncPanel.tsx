@@ -1,11 +1,82 @@
 import { useState } from "react";
 import type { Project } from "@/types/project";
+import { shallow } from "zustand/shallow";
 import { useProjectStore } from "@/store/useProjectStore";
 import { lipSyncProvider, type FacialExpression, type FacialIntensity } from "@/providers/LipSyncProvider";
-import { Button, Card, Field, SectionTitle } from "@/components/ui";
+import { Badge, Button, Card, EmptyState, Field, SectionTitle } from "@/components/ui";
 
 export function LipSyncPanel({ project }: { project: Project }) {
-  const { updateScene } = useProjectStore();
+  const { updateScene, patch } = useProjectStore((s) => ({ updateScene: s.updateScene, patch: s.patch }), shallow);
+  const [advancedOpen, setAdvancedOpen] = useState(false);
+
+  const scenesWithImages = project.scenes.map((scene, idx) => ({
+    scene,
+    idx,
+    image: project.images.find((i) => i.id === scene.imageId),
+  }));
+  const scenesWithFaces = scenesWithImages.filter((s) => (s.image?.analysis?.faces.length ?? 0) > 0);
+
+  function enableAll() {
+    patch((draft) => {
+      const imgById = new Map(draft.images.map((i) => [i.id, i]));
+      draft.scenes.forEach((s) => {
+        if ((imgById.get(s.imageId)?.analysis?.faces.length ?? 0) > 0) s.lipSyncEnabled = true;
+      });
+    });
+  }
+
+  return (
+    <div className="flex flex-col gap-4 max-w-3xl">
+      <SectionTitle>Animacion de canto</SectionTitle>
+      <p className="text-sm text-studio-muted">
+        Detecta caras reales en tus imagenes (localmente, en el navegador, sin costo) y anima la boca/mandibula al
+        ritmo del volumen de la cancion. No es sincronizacion labial por fonemas (eso requeriria un modelo generativo
+        con backend, ver "Avanzado" abajo), pero funciona sin conexion externa y sin costo, y se aplica a todas las
+        caras detectadas en una imagen (util para que el coro tambien se mueva).
+      </p>
+
+      {scenesWithFaces.length === 0 ? (
+        <EmptyState
+          title="No se detectaron caras"
+          description="Sube imagenes con personas (la cantante, el coro, etc.). La deteccion facial corre automaticamente al subir cada imagen."
+        />
+      ) : (
+        <>
+          <Button variant="primary" onClick={enableAll}>
+            🎤 Activar en las {scenesWithFaces.length} escena(s) con personajes
+          </Button>
+          <Card className="flex flex-col gap-2 max-h-80 overflow-y-auto">
+            {scenesWithImages.map(({ scene, idx, image }) => {
+              const faceCount = image?.analysis?.faces.length ?? 0;
+              if (faceCount === 0) return null;
+              return (
+                <label key={scene.id} className="flex items-center justify-between gap-2 text-sm py-1 border-b border-studio-border last:border-0">
+                  <span className="flex items-center gap-2">
+                    Escena {idx + 1} · {image?.fileName}
+                    <Badge>{faceCount} cara{faceCount > 1 ? "s" : ""}</Badge>
+                  </span>
+                  <input
+                    type="checkbox"
+                    checked={scene.lipSyncEnabled}
+                    onChange={(e) => updateScene(scene.id, { lipSyncEnabled: e.target.checked })}
+                  />
+                </label>
+              );
+            })}
+          </Card>
+        </>
+      )}
+
+      <button className="text-xs text-studio-muted text-left underline" onClick={() => setAdvancedOpen((v) => !v)}>
+        {advancedOpen ? "Ocultar" : "Mostrar"} opcion avanzada: proveedor de IA externo (lip sync por fonemas)
+      </button>
+      {advancedOpen && <AdvancedProviderLipSync project={project} />}
+    </div>
+  );
+}
+
+function AdvancedProviderLipSync({ project }: { project: Project }) {
+  const updateScene = useProjectStore((s) => s.updateScene);
   const [imageId, setImageId] = useState(project.images[0]?.id ?? "");
   const [sceneId, setSceneId] = useState(project.scenes[0]?.id ?? "");
   const [intensity, setIntensity] = useState<FacialIntensity>("natural");
@@ -44,10 +115,9 @@ export function LipSyncPanel({ project }: { project: Project }) {
   }
 
   return (
-    <div className="flex flex-col gap-4 max-w-2xl">
-      <SectionTitle>Sincronizacion labial (Lip Sync)</SectionTitle>
+    <div className="flex flex-col gap-4">
       <p className="text-sm text-studio-muted">
-        Esta funcion requiere un backend/API de generacion de video especializado. Estado del proveedor:{" "}
+        Requiere un backend/API de generacion de video especializado (fonemas reales). Estado del proveedor:{" "}
         <strong className={lipSyncProvider.configured ? "text-emerald-400" : "text-amber-400"}>
           {lipSyncProvider.configured ? "configurado" : "no configurado"}
         </strong>

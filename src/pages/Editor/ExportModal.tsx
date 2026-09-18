@@ -19,7 +19,7 @@ export function ExportModal({
   bitmaps: Map<string, ImageBitmap>;
   onClose: () => void;
 }) {
-  const { patch } = useProjectStore();
+  const patch = useProjectStore((s) => s.patch);
   const [progress, setProgress] = useState<ExportProgress | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [resultUrl, setResultUrl] = useState<string | null>(null);

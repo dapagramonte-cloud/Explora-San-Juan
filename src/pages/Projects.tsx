@@ -1,5 +1,6 @@
 import { Link, useNavigate } from "react-router-dom";
 import { useEffect } from "react";
+import { shallow } from "zustand/shallow";
 import { useProjectStore } from "@/store/useProjectStore";
 import { Button, Card, Badge, EmptyState } from "@/components/ui";
 
@@ -11,7 +12,10 @@ const STATUS_TONE: Record<string, "default" | "accent" | "warning" | "success"> 
 };
 
 export default function Projects() {
-  const { projects, refreshProjects, removeProject, duplicateProject } = useProjectStore();
+  const { projects, refreshProjects, removeProject, duplicateProject } = useProjectStore(
+    (s) => ({ projects: s.projects, refreshProjects: s.refreshProjects, removeProject: s.removeProject, duplicateProject: s.duplicateProject }),
+    shallow
+  );
   const navigate = useNavigate();
 
   useEffect(() => {

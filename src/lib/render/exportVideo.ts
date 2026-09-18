@@ -54,6 +54,8 @@ export async function exportProjectToMp4(
   const layout = computeTimelineLayout(project.scenes);
   const totalDuration = getTotalDuration(project.scenes);
   const totalFrames = Math.max(1, Math.floor(totalDuration * fps));
+  const imageAssets = new Map(project.images.map((i) => [i.id, i]));
+  const energyEnvelope = project.song.analysis?.energyEnvelope;
 
   const ffmpeg = await getFFmpeg();
 
@@ -97,6 +99,8 @@ export async function exportProjectToMp4(
         h: height,
         scenes: layout,
         images,
+        imageAssets,
+        energyEnvelope,
         colorGrade: project.colorGrade,
         t,
         effects,

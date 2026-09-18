@@ -1,5 +1,6 @@
 import { useRef } from "react";
 import type { LyricsStyle, Project } from "@/types/project";
+import { shallow } from "zustand/shallow";
 import { useProjectStore } from "@/store/useProjectStore";
 import { parseLyricsFile } from "@/lib/lyricsParser";
 import { Button, Card, EmptyState, Field, SectionTitle, TextInput } from "@/components/ui";
@@ -13,7 +14,16 @@ function formatTime(sec: number): string {
 }
 
 export function LyricsPanel({ project }: { project: Project }) {
-  const { setLyricsConfig, setLyricLines, addLyricLine, updateLyricLine, removeLyricLine } = useProjectStore();
+  const { setLyricsConfig, setLyricLines, addLyricLine, updateLyricLine, removeLyricLine } = useProjectStore(
+    (s) => ({
+      setLyricsConfig: s.setLyricsConfig,
+      setLyricLines: s.setLyricLines,
+      addLyricLine: s.addLyricLine,
+      updateLyricLine: s.updateLyricLine,
+      removeLyricLine: s.removeLyricLine,
+    }),
+    shallow
+  );
   const fileRef = useRef<HTMLInputElement>(null);
 
   async function handleFile(files: FileList | null) {

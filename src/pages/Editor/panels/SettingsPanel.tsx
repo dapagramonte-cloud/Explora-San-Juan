@@ -1,4 +1,5 @@
 import type { ExperienceMode, Genre, Project } from "@/types/project";
+import { shallow } from "zustand/shallow";
 import { useProjectStore } from "@/store/useProjectStore";
 import { Card, Field, SectionTitle, TextInput } from "@/components/ui";
 
@@ -10,7 +11,7 @@ const MODES: Array<{ id: ExperienceMode; label: string; desc: string }> = [
 ];
 
 export function SettingsPanel({ project }: { project: Project }) {
-  const { patch, setMode } = useProjectStore();
+  const { patch, setMode } = useProjectStore((s) => ({ patch: s.patch, setMode: s.setMode }), shallow);
 
   return (
     <div className="flex flex-col gap-6 max-w-2xl">

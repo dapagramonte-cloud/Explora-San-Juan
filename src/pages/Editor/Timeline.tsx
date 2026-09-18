@@ -1,5 +1,6 @@
 import { useMemo, useRef, useState } from "react";
 import type { Project } from "@/types/project";
+import { shallow } from "zustand/shallow";
 import { useProjectStore } from "@/store/useProjectStore";
 import { computeTimelineLayout } from "@/lib/timelineLayout";
 import type { Selection } from "./panelTypes";
@@ -29,7 +30,7 @@ export function Timeline({
   selection: Selection;
   onSelect: (s: Selection) => void;
 }) {
-  const { reorderScenes, updateScene } = useProjectStore();
+  const { reorderScenes, updateScene } = useProjectStore((s) => ({ reorderScenes: s.reorderScenes, updateScene: s.updateScene }), shallow);
   const [pxPerSec, setPxPerSec] = useState(40);
   const [draggedId, setDraggedId] = useState<string | null>(null);
   const resizeRef = useRef<{ id: string; startX: number; startDuration: number } | null>(null);

@@ -1,7 +1,39 @@
-import type { ColorGrade, TransitionType } from "@/types/project";
+import type { ColorGrade, ImageAsset, TransitionType } from "@/types/project";
 import type { LaidOutScene } from "@/lib/timelineLayout";
+import type { Envelope } from "@/lib/audio";
+import { getAmplitudeAt } from "@/lib/audio";
 import { computeKenBurnsRect } from "./kenburns";
 import { colorGradeCssFilter, drawFilmGrain, drawTemperatureOverlay, drawVignette } from "./colorGrade";
+import { drawAnimatedFaces } from "./mouthAnimation";
+
+type ImageSource = CanvasImageSource & { width: number; height: number };
+
+// Cache de canvases "animados" (boca en movimiento) por imagen, reutilizados
+// y redibujados cada frame en vez de recrearse (evita asignar memoria de mas).
+const animatedCanvases = new Map<string, HTMLCanvasElement>();
+
+function resolveImageSource(
+  imageId: string,
+  bitmap: ImageBitmap,
+  imageAsset: ImageAsset | undefined,
+  singingEnabled: boolean,
+  envelope: Envelope | undefined,
+  t: number
+): ImageSource {
+  const faces = imageAsset?.analysis?.faces;
+  if (!singingEnabled || !faces || faces.length === 0 || !envelope) return bitmap;
+
+  let canvas = animatedCanvases.get(imageId);
+  if (!canvas || canvas.width !== bitmap.width || canvas.height !== bitmap.height) {
+    canvas = document.createElement("canvas");
+    canvas.width = bitmap.width;
+    canvas.height = bitmap.height;
+    animatedCanvases.set(imageId, canvas);
+  }
+  const amplitude = getAmplitudeAt(envelope, t);
+  drawAnimatedFaces(canvas.getContext("2d")!, bitmap, faces, amplitude);
+  return canvas;
+}
 
 export interface RenderEffects {
   vignette: boolean;
@@ -33,17 +65,17 @@ function getLayer(which: "a" | "b", w: number, h: number): HTMLCanvasElement {
 
 function drawSceneImage(
   target: CanvasRenderingContext2D,
-  bitmap: ImageBitmap,
+  source: ImageSource,
   scene: LaidOutScene,
   w: number,
   h: number,
   localT: number,
   colorGrade: ColorGrade
 ) {
-  const rect = computeKenBurnsRect(bitmap.width, bitmap.height, w, h, scene.movement, scene.movementIntensity, localT);
+  const rect = computeKenBurnsRect(source.width, source.height, w, h, scene.movement, scene.movementIntensity, localT);
   target.save();
   target.filter = colorGradeCssFilter(colorGrade);
-  target.drawImage(bitmap, rect.sx, rect.sy, rect.sw, rect.sh, 0, 0, w, h);
+  target.drawImage(source, rect.sx, rect.sy, rect.sw, rect.sh, 0, 0, w, h);
   target.filter = "none";
   target.restore();
   drawTemperatureOverlay(target, w, h, colorGrade);
@@ -190,6 +222,8 @@ export interface RenderFrameParams {
   h: number;
   scenes: LaidOutScene[];
   images: Map<string, ImageBitmap>;
+  imageAssets?: Map<string, ImageAsset>;
+  energyEnvelope?: Envelope;
   colorGrade: ColorGrade;
   t: number;
   effects: RenderEffects;
@@ -197,7 +231,7 @@ export interface RenderFrameParams {
 }
 
 export function renderFrame(params: RenderFrameParams) {
-  const { ctx, w, h, scenes, images, colorGrade, t, effects, activeLyric } = params;
+  const { ctx, w, h, scenes, images, imageAssets, energyEnvelope, colorGrade, t, effects, activeLyric } = params;
   const timing = resolveSceneAtTime(scenes, t);
   ctx.clearRect(0, 0, w, h);
 
@@ -208,20 +242,27 @@ export function renderFrame(params: RenderFrameParams) {
   }
 
   const currentBitmap = images.get(timing.scene.imageId);
+  const currentSource =
+    currentBitmap &&
+    resolveImageSource(timing.scene.imageId, currentBitmap, imageAssets?.get(timing.scene.imageId), timing.scene.lipSyncEnabled, energyEnvelope, t);
 
   if (timing.next && timing.transitionAlpha !== undefined && timing.transitionType) {
     const nextBitmap = images.get(timing.next.imageId);
+    const nextSource =
+      nextBitmap &&
+      timing.next &&
+      resolveImageSource(timing.next.imageId, nextBitmap, imageAssets?.get(timing.next.imageId), timing.next.lipSyncEnabled, energyEnvelope, t);
     const a = getLayer("a", w, h);
     const b = getLayer("b", w, h);
     const actx = a.getContext("2d")!;
     const bctx = b.getContext("2d")!;
     actx.clearRect(0, 0, w, h);
     bctx.clearRect(0, 0, w, h);
-    if (currentBitmap) drawSceneImage(actx, currentBitmap, timing.scene, w, h, timing.localT, colorGrade);
-    if (nextBitmap && timing.next) drawSceneImage(bctx, nextBitmap, timing.next, w, h, timing.nextLocalT ?? 0, colorGrade);
+    if (currentSource) drawSceneImage(actx, currentSource, timing.scene, w, h, timing.localT, colorGrade);
+    if (nextSource && timing.next) drawSceneImage(bctx, nextSource, timing.next, w, h, timing.nextLocalT ?? 0, colorGrade);
     compositeTransition(ctx, a, b, timing.transitionAlpha, timing.transitionType, w, h);
-  } else if (currentBitmap) {
-    drawSceneImage(ctx, currentBitmap, timing.scene, w, h, timing.localT, colorGrade);
+  } else if (currentSource) {
+    drawSceneImage(ctx, currentSource, timing.scene, w, h, timing.localT, colorGrade);
   }
 
   if (effects.vignette) drawVignette(ctx, w, h);

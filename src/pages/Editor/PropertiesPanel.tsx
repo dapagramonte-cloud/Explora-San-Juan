@@ -1,4 +1,5 @@
 import type { CameraMovementType, Project, TransitionType } from "@/types/project";
+import { shallow } from "zustand/shallow";
 import { useProjectStore } from "@/store/useProjectStore";
 import { Badge, Field, SectionTitle, TextInput } from "@/components/ui";
 import type { Selection } from "./panelTypes";
@@ -12,7 +13,7 @@ const TRANSITIONS: TransitionType[] = [
 ];
 
 export function PropertiesPanel({ project, selection }: { project: Project; selection: Selection }) {
-  const { updateScene, patch } = useProjectStore();
+  const { updateScene, patch } = useProjectStore((s) => ({ updateScene: s.updateScene, patch: s.patch }), shallow);
 
   if (!selection) {
     return (
@@ -25,6 +26,8 @@ export function PropertiesPanel({ project, selection }: { project: Project; sele
   if (selection.type === "scene") {
     const scene = project.scenes.find((s) => s.id === selection.id);
     if (!scene) return null;
+    const sceneImage = project.images.find((i) => i.id === scene.imageId);
+    const faceCount = sceneImage?.analysis?.faces.length ?? 0;
     return (
       <div className="flex flex-col gap-4 p-1">
         <SectionTitle>Escena</SectionTitle>
@@ -82,7 +85,23 @@ export function PropertiesPanel({ project, selection }: { project: Project; sele
             className="studio-input rounded-md px-3 py-2 text-sm min-h-[70px]"
           />
         </Field>
-        {scene.lipSyncEnabled && <Badge tone="accent">lip sync activo</Badge>}
+        <Field label="Animacion de canto (local, sin costo)">
+          <label className="flex items-center gap-2 text-sm">
+            <input
+              type="checkbox"
+              disabled={faceCount === 0}
+              checked={scene.lipSyncEnabled}
+              onChange={(e) => updateScene(scene.id, { lipSyncEnabled: e.target.checked })}
+            />
+            Mover la boca al ritmo de la cancion
+          </label>
+          {faceCount === 0 ? (
+            <span className="text-xs text-studio-muted">No se detecto ninguna cara en esta imagen.</span>
+          ) : (
+            <span className="text-xs text-studio-muted">{faceCount} cara(s) detectada(s) en la imagen.</span>
+          )}
+        </Field>
+        {scene.lipSyncEnabled && faceCount > 0 && <Badge tone="accent">animacion de canto activa</Badge>}
       </div>
     );
   }

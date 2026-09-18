@@ -34,6 +34,8 @@ export function PreviewPlayer({ project, effects = { vignette: false, grain: fal
   const [currentTime, setCurrentTime] = useState(0);
 
   const bitmaps = useSceneBitmaps(project.images);
+  const imageAssets = useMemo(() => new Map(project.images.map((i) => [i.id, i])), [project.images]);
+  const energyEnvelope = project.song?.analysis?.energyEnvelope;
   const layout = useMemo(() => computeTimelineLayout(project.scenes), [project.scenes]);
   const totalDuration = useMemo(
     () => (project.song?.analysis ? project.song.analysis.durationSec : getTotalDuration(project.scenes)),
@@ -90,6 +92,8 @@ export function PreviewPlayer({ project, effects = { vignette: false, grain: fal
         h: dims.h,
         scenes: layout,
         images: bitmaps,
+        imageAssets,
+        energyEnvelope,
         colorGrade: project.colorGrade,
         t,
         effects,
@@ -102,7 +106,7 @@ export function PreviewPlayer({ project, effects = { vignette: false, grain: fal
     return () => {
       if (rafRef.current) cancelAnimationFrame(rafRef.current);
     };
-  }, [isPlaying, layout, bitmaps, project.colorGrade, effects, activeLyric, dims.w, dims.h]);
+  }, [isPlaying, layout, bitmaps, imageAssets, energyEnvelope, project.colorGrade, effects, activeLyric, dims.w, dims.h]);
 
   function togglePlay() {
     const audio = audioRef.current;

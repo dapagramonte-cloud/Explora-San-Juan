@@ -1,10 +1,10 @@
-// Analisis local real de imagenes usando Canvas (sin backend ni deteccion
-// facial real). Extrae dimensiones, orientacion, brillo y colores dominantes,
-// y aplica heuristicas simples de encuadre para estimar si hay un posible
-// retrato (objeto de interes centrado y vertical). No se modifica la imagen
-// original (seccion 8 del pliego).
+// Analisis local real de imagenes usando Canvas: dimensiones, orientacion,
+// brillo, colores dominantes, y deteccion facial real (blazeface + facemesh,
+// vease src/lib/faceAnimation) usada tanto para etiquetar "personaje" como
+// para animar el canto. No se modifica la imagen original (seccion 8).
 
 import type { ImageAnalysis, ImageTag } from "@/types/project";
+import { detectFaces } from "@/lib/faceAnimation/detectFaces";
 
 export async function analyzeImage(file: Blob): Promise<ImageAnalysis> {
   const bitmap = await createImageBitmap(file);
@@ -56,10 +56,16 @@ export async function analyzeImage(file: Blob): Promise<ImageAnalysis> {
   const edges = getEdgeBrightness(data, sampleSize, sampleSize);
   const likelyPortrait = Math.abs(center - edges) > 0.05;
 
+  // Deteccion facial real (no la heuristica de brillo) sobre la imagen a
+  // resolucion completa, para poder animar el canto con precision.
+  const fullBitmap = await createImageBitmap(file);
+  const faces = await detectFaces(fullBitmap);
+  fullBitmap.close();
+
   const tags: ImageTag[] = [];
   tags.push(orientation === "vertical" ? "primer-plano" : "plano-general");
   tags.push(brightness < 0.35 ? "nocturno" : "diurno");
-  if (likelyPortrait) tags.push("personaje");
+  if (faces.length > 0 || likelyPortrait) tags.push("personaje");
 
   bitmap.close();
 
@@ -70,6 +76,7 @@ export async function analyzeImage(file: Blob): Promise<ImageAnalysis> {
     dominantColors,
     brightness: Number(brightness.toFixed(3)),
     likelyPortrait,
+    faces,
     tags,
     analyzedAt: new Date().toISOString(),
   };
