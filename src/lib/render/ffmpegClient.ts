@@ -4,13 +4,16 @@ import { toBlobURL } from "@ffmpeg/util";
 let ffmpegSingleton: FFmpeg | null = null;
 let loadPromise: Promise<FFmpeg> | null = null;
 
-const CORE_BASE_URL = "https://unpkg.com/@ffmpeg/core@0.12.6/dist/esm";
+// El core de FFmpeg (WebAssembly) se sirve desde el propio dominio de la app
+// (public/ffmpeg/), no desde un CDN externo: evita depender de la
+// disponibilidad de unpkg/jsdelivr en tiempo de ejecucion y funciona con las
+// cabeceras COOP/COEP ya configuradas para SharedArrayBuffer.
+const CORE_BASE_URL = "/ffmpeg";
 
 /**
- * Carga el motor real de FFmpeg (WebAssembly) bajo demanda. Requiere que el
- * navegador pueda descargar el core desde CDN la primera vez (se cachea
- * despues). Si la descarga falla (sin conexion), el export debe fallar de
- * forma explicita: nunca se simula una exportacion exitosa.
+ * Carga el motor real de FFmpeg (WebAssembly) bajo demanda. Si la carga
+ * falla, el export debe fallar de forma explicita: nunca se simula una
+ * exportacion exitosa.
  */
 export async function getFFmpeg(onLog?: (msg: string) => void): Promise<FFmpeg> {
   if (ffmpegSingleton) return ffmpegSingleton;
